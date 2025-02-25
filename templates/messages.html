@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Messages</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Welcome, {{ username }}!</h1>
+            <a href="/logout" class="logout-button">Logout</a>
+        </header>
+        
+        <div class="chat-container">
+            <div class="users-list"></div>
+            
+            <div class="chat-area">
+                <div id="messageList">
+                    <div class="info-message">Select a user to start chatting</div>
+                </div>
+                
+                <div class="message-input-wrapper">
+                    <div class="message-input-area">
+                        <textarea id="messageInput" placeholder="Type your message..."></textarea>
+                        <div class="buttons">
+                            <button onclick="sendMessage()">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>

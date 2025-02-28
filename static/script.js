@@ -5,7 +5,7 @@ let eventSource = null;  // Added global variable
 document.addEventListener('DOMContentLoaded', () => {
     loadUsers();
     setupEventSource();
-    setInterval(refreshMessages, 10);  // Refresh messages every 3 seconds
+    setInterval(refreshMessages, 3000);  // Refresh messages every 3 seconds
 });
 
 // Load the list of users from the server
@@ -142,9 +142,13 @@ async function refreshMessages() {
     }
     
     try {
+        const messageList = document.getElementById('messageList');
+        // Store current scroll position and check if was at bottom
+        const wasAtBottom = messageList.scrollHeight - messageList.scrollTop === messageList.clientHeight;
+        const scrollTop = messageList.scrollTop;
+
         const response = await fetch(`/get_user_messages/${currentUser}`);
         const data = await response.json();
-        const messageList = document.getElementById('messageList');
         messageList.innerHTML = ''; // Clear existing messages
         
         if (data.messages.length === 0) {
@@ -169,8 +173,12 @@ async function refreshMessages() {
             messageList.appendChild(div);
         });
         
-        // Auto-scroll to the bottom of the message list
-        messageList.scrollTop = messageList.scrollHeight;
+        // Only auto-scroll if user was already at the bottom
+        if (wasAtBottom) {
+            messageList.scrollTop = messageList.scrollHeight;
+        } else {
+            messageList.scrollTop = scrollTop;
+        }
     } catch (error) {
         console.error('Failed to refresh messages:', error);
     }

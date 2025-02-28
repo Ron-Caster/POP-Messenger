@@ -5,17 +5,26 @@ import hashlib
 import os
 import time
 import json
-from gevent import monkey
-from gevent.pywsgi import WSGIServer
-
-monkey.patch_all()  # Needed for async SSE support
+import logging
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Generate a secure secret key
+app.secret_key = os.urandom(24)
 
-# Add CORS support
-from flask_cors import CORS
-CORS(app)
+# Set up logging
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+logging.basicConfig(level=logging.INFO)
+handler = RotatingFileHandler(
+    'logs/app.log', 
+    maxBytes=1024 * 1024,  # 1MB
+    backupCount=5
+)
+handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+))
+app.logger.addHandler(handler)
 
 # Database functions
 def create_connection():
@@ -86,8 +95,9 @@ def signup():
 
 @app.route('/stream')
 def stream():
-    username = request.args.get('username')  # Get username from query parameter
+    username = request.args.get('username')
     if not username:
+        app.logger.error(f"Stream request without username")
         return {'status': 'error', 'message': 'Username is required'}, 400
 
     def event_stream():
@@ -112,18 +122,17 @@ def stream():
                         'timestamp': msg[4]
                     }
                     yield f"data: {json.dumps(data)}\n\n"
-                time.sleep(0.5)  # Reduce sleep time
+                time.sleep(0.5)
             except Exception as e:
-                print(f"Error in SSE stream: {str(e)}")
-                time.sleep(1)  # Reconnect delay
+                app.logger.error(f"Stream error for user {username}: {str(e)}")
+                time.sleep(1)
 
     return Response(
         event_stream(),
         mimetype='text/event-stream',
         headers={
             'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no'
+            'Connection': 'keep-alive'
         }
     )
 
@@ -189,6 +198,6 @@ def logout():
 
 if __name__ == '__main__':
     create_tables()
-    # Use production server
-    http_server = WSGIServer(('0.0.0.0', 5000), app)
-    http_server.serve_forever()
+    app.logger.info('Application startup: Database tables created')
+    # Run with standard Flask development server
+    app.run(host='0.0.0.0', port=5000, debug=True)
